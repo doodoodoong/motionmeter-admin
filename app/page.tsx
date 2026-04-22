@@ -10,9 +10,16 @@ import DataTable from '@/components/DataTable';
 import ComparisonChart from '@/components/ComparisonChart';
 import { FiActivity, FiZap, FiTrendingUp, FiDatabase, FiLogOut } from 'react-icons/fi';
 
+const WEAPON_NAMES: Record<string, string> = {
+  flail: '편곤',
+  staff: '봉',
+  mace: '철퇴',
+  unknown: '알 수 없음',
+};
+
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { data, allData, loading: dataLoading, filters, setFilters, statistics } = useFirebaseData();
+  const { data, allData, loading: dataLoading, filters, setFilters, statistics, weaponStatistics } = useFirebaseData();
   const router = useRouter();
 
   useEffect(() => {
@@ -44,8 +51,8 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 bg-black/20 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">편곤 에너지 측정 결과 Admin</h1>
-            <p className="text-sm text-purple-300">편곤 에너지 측정 데이터 관리</p>
+            <h1 className="text-2xl font-bold text-white">무기 에너지 측정 결과 Admin</h1>
+            <p className="text-sm text-purple-300">무기별 에너지 측정 데이터 관리</p>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-purple-200">{user.email}</span>
@@ -62,32 +69,68 @@ export default function Dashboard() {
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* 통계 카드 */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="총 측정 수"
-            value={statistics.totalCount.toLocaleString()}
-            icon={<FiDatabase size={20} />}
-            color="purple"
-          />
-          <StatCard
-            title="평균 에너지"
-            value={`${statistics.avgEnergy.toFixed(2)} J`}
-            icon={<FiZap size={20} />}
-            color="blue"
-          />
-          <StatCard
-            title="평균 각속도"
-            value={`${statistics.avgAngularVelocity.toFixed(2)} rad/s`}
-            icon={<FiActivity size={20} />}
-            color="green"
-          />
-          <StatCard
-            title="최대 에너지"
-            value={`${statistics.maxEnergy.toFixed(2)} J`}
-            icon={<FiTrendingUp size={20} />}
-            color="orange"
-          />
+        
+        {/* 전체 통계 */}
+        <section>
+          <h2 className="text-xl font-semibold text-white mb-4">전체 통계</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="총 측정 수"
+              value={statistics.totalCount.toLocaleString()}
+              icon={<FiDatabase size={20} />}
+              color="purple"
+            />
+            <StatCard
+              title="평균 에너지"
+              value={`${statistics.avgEnergy.toFixed(2)} J`}
+              icon={<FiZap size={20} />}
+              color="blue"
+            />
+            <StatCard
+              title="평균 각속도"
+              value={`${statistics.avgAngularVelocity.toFixed(2)} rad/s`}
+              icon={<FiActivity size={20} />}
+              color="green"
+            />
+            <StatCard
+              title="최대 에너지"
+              value={`${statistics.maxEnergy.toFixed(2)} J`}
+              icon={<FiTrendingUp size={20} />}
+              color="orange"
+            />
+          </div>
+        </section>
+
+        {/* 무기별 통계 카드 */}
+        <section>
+          <h2 className="text-xl font-semibold text-white mb-4">무기별 통계 요약</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {weaponStatistics.map((stat) => (
+              <div key={stat.weapon} className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">
+                  {WEAPON_NAMES[stat.weapon] || stat.weapon}
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-200">총 측정 수</span>
+                    <span className="font-semibold text-white">{stat.totalCount.toLocaleString()}회</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-200">평균 회전에너지</span>
+                    <span className="font-semibold text-blue-300">{stat.avgEnergy.toFixed(2)} J</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-200">평균 각속도</span>
+                    <span className="font-semibold text-green-300">{stat.avgAngularVelocity.toFixed(2)} rad/s</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-200">최대 에너지</span>
+                    <span className="font-semibold text-orange-300">{stat.maxEnergy.toFixed(2)} J</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* 비교 차트 */}

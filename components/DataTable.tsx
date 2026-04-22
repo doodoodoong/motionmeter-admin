@@ -12,14 +12,24 @@ interface DataTableProps {
 type SortKey = 'timestamp' | 'maxEnergy' | 'maxAngularVelocity';
 type SortOrder = 'asc' | 'desc';
 
-const categoryLabels = {
-  elementary: '초중등',
-  secondary: '고등/일반',
+const WEAPON_NAMES: Record<string, string> = {
+  flail: '편곤',
+  staff: '봉',
+  mace: '철퇴',
+  unknown: '알 수 없음',
 };
 
-const typeLabels = {
-  infantry: '보병용',
-  cavalry: '마상용',
+const getWeaponColor = (weapon: string) => {
+  switch (weapon) {
+    case 'flail':
+      return 'bg-purple-500/20 text-purple-300';
+    case 'staff':
+      return 'bg-emerald-500/20 text-emerald-300';
+    case 'mace':
+      return 'bg-orange-500/20 text-orange-300';
+    default:
+      return 'bg-gray-500/20 text-gray-300';
+  }
 };
 
 export default function DataTable({ data, loading }: DataTableProps) {
@@ -89,10 +99,7 @@ export default function DataTable({ data, loading }: DataTableProps) {
                 </button>
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">
-                카테고리
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">
-                유형
+                무기
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">
                 <button
@@ -127,24 +134,9 @@ export default function DataTable({ data, loading }: DataTableProps) {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      item.category === 'elementary'
-                        ? 'bg-blue-500/20 text-blue-300'
-                        : 'bg-purple-500/20 text-purple-300'
-                    }`}
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getWeaponColor(item.weapon)}`}
                   >
-                    {categoryLabels[item.category]}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      item.type === 'infantry'
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-orange-500/20 text-orange-300'
-                    }`}
-                  >
-                    {typeLabels[item.type]}
+                    {WEAPON_NAMES[item.weapon] || item.weapon}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-white font-mono">
