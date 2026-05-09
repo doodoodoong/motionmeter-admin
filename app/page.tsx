@@ -2,13 +2,15 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirebaseData } from '@/hooks/useFirebaseData';
 import StatCard from '@/components/StatCard';
 import FilterBar from '@/components/FilterBar';
 import DataTable from '@/components/DataTable';
-import ComparisonChart from '@/components/ComparisonChart';
 import { FiActivity, FiZap, FiTrendingUp, FiDatabase, FiLogOut } from 'react-icons/fi';
+
+const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), { ssr: false });
 
 const WEAPON_NAMES: Record<string, string> = {
   flail: '편곤',

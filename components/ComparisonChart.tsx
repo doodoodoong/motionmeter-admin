@@ -21,52 +21,50 @@ const WEAPON_NAMES: Record<string, string> = {
   flail: '편곤',
   staff: '봉',
   mace: '철퇴',
+  unknown: '알 수 없음',
 };
 
+const WEAPON_COLORS = ['#06b6d4', '#10b981', '#f97316', '#8b5cf6', '#ec4899'];
+
 export default function ComparisonChart({ data }: ComparisonChartProps) {
-  const { energyData, velocityData } = useMemo(() => {
-    // 무기별 통계 계산
-    const flailData = data.filter((item) => item.weapon === 'flail');
-    const staffData = data.filter((item) => item.weapon === 'staff');
-    const maceData = data.filter((item) => item.weapon === 'mace');
+  const { energyData, velocityData, weapons } = useMemo(() => {
+    const uniqueWeapons = Array.from(new Set(data.map((item) => item.weapon)));
+
+    const weaponGroups: Record<string, MeasurementData[]> = {};
+    for (const weapon of uniqueWeapons) {
+      weaponGroups[weapon] = data.filter((item) => item.weapon === weapon);
+    }
 
     const calcAvg = (items: MeasurementData[], key: 'maxEnergy' | 'maxAngularVelocity') => {
       if (items.length === 0) return 0;
-      return items.reduce((sum, item) => sum + item[key], 0) / items.length;
+      return Number((items.reduce((sum, item) => sum + item[key], 0) / items.length).toFixed(2));
     };
 
     const calcMax = (items: MeasurementData[], key: 'maxEnergy' | 'maxAngularVelocity') => {
       if (items.length === 0) return 0;
-      return Math.max(...items.map((item) => item[key]));
+      return Number(Math.max(...items.map((item) => item[key])).toFixed(2));
     };
 
     return {
+      weapons: uniqueWeapons,
       energyData: [
         {
           name: '평균 에너지',
-          편곤: Number(calcAvg(flailData, 'maxEnergy').toFixed(2)),
-          봉: Number(calcAvg(staffData, 'maxEnergy').toFixed(2)),
-          철퇴: Number(calcAvg(maceData, 'maxEnergy').toFixed(2)),
+          ...Object.fromEntries(uniqueWeapons.map((w) => [w, calcAvg(weaponGroups[w], 'maxEnergy')])),
         },
         {
           name: '최대 에너지',
-          편곤: Number(calcMax(flailData, 'maxEnergy').toFixed(2)),
-          봉: Number(calcMax(staffData, 'maxEnergy').toFixed(2)),
-          철퇴: Number(calcMax(maceData, 'maxEnergy').toFixed(2)),
+          ...Object.fromEntries(uniqueWeapons.map((w) => [w, calcMax(weaponGroups[w], 'maxEnergy')])),
         },
       ],
       velocityData: [
         {
           name: '평균 각속도',
-          편곤: Number(calcAvg(flailData, 'maxAngularVelocity').toFixed(2)),
-          봉: Number(calcAvg(staffData, 'maxAngularVelocity').toFixed(2)),
-          철퇴: Number(calcAvg(maceData, 'maxAngularVelocity').toFixed(2)),
+          ...Object.fromEntries(uniqueWeapons.map((w) => [w, calcAvg(weaponGroups[w], 'maxAngularVelocity')])),
         },
         {
           name: '최대 각속도',
-          편곤: Number(calcMax(flailData, 'maxAngularVelocity').toFixed(2)),
-          봉: Number(calcMax(staffData, 'maxAngularVelocity').toFixed(2)),
-          철퇴: Number(calcMax(maceData, 'maxAngularVelocity').toFixed(2)),
+          ...Object.fromEntries(uniqueWeapons.map((w) => [w, calcMax(weaponGroups[w], 'maxAngularVelocity')])),
         },
       ],
     };
@@ -95,6 +93,10 @@ export default function ComparisonChart({ data }: ComparisonChartProps) {
     },
   };
 
+  const legendFormatter = (value: string) => (
+    <span style={{ color: '#c4b5fd' }}>{WEAPON_NAMES[value] ?? value}</span>
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* 에너지 차트 */}
@@ -105,25 +107,11 @@ export default function ComparisonChart({ data }: ComparisonChartProps) {
             <CartesianGrid {...chartConfig.grid} />
             <XAxis dataKey="name" {...chartConfig.xAxis} />
             <YAxis {...chartConfig.yAxis} />
-            <Tooltip {...chartConfig.tooltip} />
-            <Legend formatter={(value) => <span style={{ color: '#c4b5fd' }}>{value}</span>} />
-            <Bar dataKey="편곤" fill="url(#flailGradient)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="봉" fill="url(#staffGradient)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="철퇴" fill="url(#maceGradient)" radius={[4, 4, 0, 0]} />
-            <defs>
-              <linearGradient id="flailGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#6d28d9" />
-              </linearGradient>
-              <linearGradient id="staffGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-              <linearGradient id="maceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f97316" />
-                <stop offset="100%" stopColor="#ea580c" />
-              </linearGradient>
-            </defs>
+            <Tooltip {...chartConfig.tooltip} formatter={(value, name) => [value, WEAPON_NAMES[name as string] ?? name]} />
+            <Legend formatter={legendFormatter} />
+            {weapons.map((weapon, i) => (
+              <Bar key={weapon} dataKey={weapon} fill={WEAPON_COLORS[i % WEAPON_COLORS.length]} radius={[4, 4, 0, 0]} />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -136,25 +124,11 @@ export default function ComparisonChart({ data }: ComparisonChartProps) {
             <CartesianGrid {...chartConfig.grid} />
             <XAxis dataKey="name" {...chartConfig.xAxis} />
             <YAxis {...chartConfig.yAxis} />
-            <Tooltip {...chartConfig.tooltip} />
-            <Legend formatter={(value) => <span style={{ color: '#c4b5fd' }}>{value}</span>} />
-            <Bar dataKey="편곤" fill="url(#flailGradient2)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="봉" fill="url(#staffGradient2)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="철퇴" fill="url(#maceGradient2)" radius={[4, 4, 0, 0]} />
-            <defs>
-              <linearGradient id="flailGradient2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#6d28d9" />
-              </linearGradient>
-              <linearGradient id="staffGradient2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-              <linearGradient id="maceGradient2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f97316" />
-                <stop offset="100%" stopColor="#ea580c" />
-              </linearGradient>
-            </defs>
+            <Tooltip {...chartConfig.tooltip} formatter={(value, name) => [value, WEAPON_NAMES[name as string] ?? name]} />
+            <Legend formatter={legendFormatter} />
+            {weapons.map((weapon, i) => (
+              <Bar key={weapon} dataKey={weapon} fill={WEAPON_COLORS[i % WEAPON_COLORS.length]} radius={[4, 4, 0, 0]} />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </div>
