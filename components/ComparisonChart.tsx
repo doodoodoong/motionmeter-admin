@@ -20,7 +20,6 @@ interface ComparisonChartProps {
 const WEAPON_NAMES: Record<string, string> = {
   flail: '편곤',
   staff: '봉',
-  mace: '철퇴',
   unknown: '알 수 없음',
 };
 

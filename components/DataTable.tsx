@@ -15,7 +15,6 @@ type SortOrder = 'asc' | 'desc';
 const WEAPON_NAMES: Record<string, string> = {
   flail: '편곤',
   staff: '봉',
-  mace: '철퇴',
   unknown: '알 수 없음',
 };
 
@@ -25,8 +24,6 @@ const getWeaponColor = (weapon: string) => {
       return 'bg-purple-500/20 text-purple-300';
     case 'staff':
       return 'bg-emerald-500/20 text-emerald-300';
-    case 'mace':
-      return 'bg-orange-500/20 text-orange-300';
     default:
       return 'bg-gray-500/20 text-gray-300';
   }

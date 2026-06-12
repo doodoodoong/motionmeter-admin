@@ -22,6 +22,9 @@ export function useFirebaseData() {
         const loadedData: MeasurementData[] = [];
         snapshot.forEach((doc) => {
           const docData = doc.data();
+          if (docData.weapon === 'mace' || docData.weapon === '철퇴') {
+            return;
+          }
           loadedData.push({
             id: doc.id,
             weapon: docData.weapon || 'unknown',

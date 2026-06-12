@@ -22,7 +22,6 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           <option value="all" className="bg-slate-800">전체</option>
           <option value="flail" className="bg-slate-800">편곤</option>
           <option value="staff" className="bg-slate-800">봉</option>
-          <option value="mace" className="bg-slate-800">철퇴</option>
         </select>
       </div>
     </div>
