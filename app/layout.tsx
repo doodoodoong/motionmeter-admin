@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotionMeter Admin",
-  description: "도량형 측정 데이터 관리자 페이지",
+  title: "상대 타격지수 데이터 비교",
+  description: "편곤과 봉의 회전운동 측정 결과 비교 대시보드",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f6f8fb",
 };
 
 export default function RootLayout({

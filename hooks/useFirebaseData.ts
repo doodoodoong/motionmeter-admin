@@ -116,8 +116,8 @@ export function useFirebaseData() {
     });
   }, [data, filters]);
 
-  // 전체 통계
-  const statistics: Statistics = useMemo(() => summarize(filteredData), [filteredData]);
+  // 발표용 전체 통계. 하단 기록 필터와 분리해 비교 결론이 바뀌지 않게 한다.
+  const overallStatistics: Statistics = useMemo(() => summarize(data), [data]);
 
   // 무기별 통계 — 원본 표기가 달라도 정규화 코드로 하나로 묶인다
   const weaponStatistics: WeaponStatistics[] = useMemo(() => {
@@ -136,13 +136,13 @@ export function useFirebaseData() {
   }, [data]);
 
   return {
-    data: filteredData,
+    filteredData,
     allData: data,
     loading,
     error,
     filters,
     setFilters,
-    statistics,
+    overallStatistics,
     weaponStatistics,
   };
 }

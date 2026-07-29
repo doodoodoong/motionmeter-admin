@@ -4,141 +4,117 @@ import { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
-  XAxis,
-  YAxis,
   CartesianGrid,
-  Tooltip,
+  LabelList,
   Legend,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
 import { DerivedMeasurement } from '@/types';
-import { WeaponCode } from '@/lib/physics';
+import { WEAPON_CODES, WeaponCode } from '@/lib/physics';
 
 interface ComparisonChartProps {
   data: DerivedMeasurement[];
 }
 
-const WEAPON_COLORS = ['#06b6d4', '#10b981', '#f97316', '#8b5cf6', '#ec4899'];
+type Tab = 'index' | 'omega';
 
-const INDEX_COLOR = '#06b6d4';
-const OMEGA_COLOR = '#10b981';
-
-type Tab = 'index' | 'omega' | 'both';
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'index', label: '상대 타격지수' },
-  { key: 'omega', label: '각속도' },
-  { key: 'both', label: '함께 보기' },
+const TABS: { key: Tab; label: string; description: string }[] = [
+  { key: 'index', label: '상대 타격지수', description: '구조와 속도를 함께 반영한 비교값' },
+  { key: 'omega', label: '각속도', description: '센서로 직접 측정한 회전 속도' },
 ];
 
-const round2 = (n: number) => Number(n.toFixed(2));
+const WEAPON_COLORS: Record<WeaponCode, string> = {
+  편곤: '#0284c7',
+  봉: '#059669',
+};
+
+const round1 = (value: number) => Number(value.toFixed(1));
 
 export default function ComparisonChart({ data }: ComparisonChartProps) {
   const [tab, setTab] = useState<Tab>('index');
 
-  const { weapons, indexData, omegaData, bothData } = useMemo(() => {
-    // 무기를 특정할 수 없는 레코드는 계수를 적용할 수 없어 차트에서 제외한다
-    const usable = data.filter((item) => item.weaponCode !== null);
-    const uniqueWeapons = Array.from(
-      new Set(usable.map((item) => item.weaponCode as WeaponCode))
-    );
+  const { chartData, availableWeapons, summaries } = useMemo(() => {
+    const groups = new Map<WeaponCode, { omega: number[]; index: number[] }>();
+    for (const weapon of WEAPON_CODES) groups.set(weapon, { omega: [], index: [] });
 
-    const groups: Record<string, DerivedMeasurement[]> = {};
-    for (const weapon of uniqueWeapons) {
-      groups[weapon] = usable.filter((item) => item.weaponCode === weapon);
+    for (const item of data) {
+      if (!item.weaponCode) continue;
+      const group = groups.get(item.weaponCode);
+      if (!group) continue;
+      group.omega.push(item.maxAngularVelocity);
+      if (item.derived) group.index.push(item.derived.index);
     }
 
-    const indexValues = (items: DerivedMeasurement[]) =>
-      items.map((item) => item.derived?.index ?? 0);
-    const omegaValues = (items: DerivedMeasurement[]) =>
-      items.map((item) => item.maxAngularVelocity);
+    const weapons = WEAPON_CODES.filter((weapon) => {
+      const group = groups.get(weapon);
+      return group ? group.omega.length > 0 : false;
+    });
 
-    const avg = (values: number[]) =>
-      values.length === 0 ? 0 : round2(values.reduce((s, v) => s + v, 0) / values.length);
-    const peak = (values: number[]) => (values.length === 0 ? 0 : round2(Math.max(...values)));
+    const values = (weapon: WeaponCode) => {
+      const group = groups.get(weapon)!;
+      const source = tab === 'index' ? group.index : group.omega;
+      let total = 0;
+      let maximum = 0;
+      for (const value of source) {
+        total += value;
+        if (value > maximum) maximum = value;
+      }
+      const average = source.length ? total / source.length : 0;
+      return { average: round1(average), maximum: round1(maximum) };
+    };
+
+    const summaryByWeapon = new Map(weapons.map((weapon) => [weapon, values(weapon)]));
 
     return {
-      weapons: uniqueWeapons,
-      indexData: [
+      availableWeapons: weapons,
+      chartData: [
         {
-          name: '평균 지수',
-          ...Object.fromEntries(uniqueWeapons.map((w) => [w, avg(indexValues(groups[w]))])),
+          name: '평균',
+          ...Object.fromEntries(weapons.map((weapon) => [weapon, summaryByWeapon.get(weapon)!.average])),
         },
         {
-          name: '최대 지수',
-          ...Object.fromEntries(uniqueWeapons.map((w) => [w, peak(indexValues(groups[w]))])),
-        },
-      ],
-      omegaData: [
-        {
-          name: '평균 각속도',
-          ...Object.fromEntries(uniqueWeapons.map((w) => [w, avg(omegaValues(groups[w]))])),
-        },
-        {
-          name: '최대 각속도',
-          ...Object.fromEntries(uniqueWeapons.map((w) => [w, peak(omegaValues(groups[w]))])),
+          name: '최대',
+          ...Object.fromEntries(weapons.map((weapon) => [weapon, summaryByWeapon.get(weapon)!.maximum])),
         },
       ],
-      bothData: uniqueWeapons.map((w) => ({
-        name: w,
-        avgIndex: avg(indexValues(groups[w])),
-        avgOmega: avg(omegaValues(groups[w])),
-      })),
+      summaries: weapons.map((weapon) => ({ weapon, ...summaryByWeapon.get(weapon)! })),
     };
-  }, [data]);
+  }, [data, tab]);
 
-  if (data.length === 0 || weapons.length === 0) {
+  if (availableWeapons.length === 0) {
     return (
-      <div className="flex items-center justify-center h-80 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20">
-        <p className="text-purple-200">차트를 표시할 데이터가 없습니다.</p>
+      <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white">
+        <p className="text-sm text-slate-500">차트를 표시할 측정 데이터가 없습니다.</p>
       </div>
     );
   }
 
-  const grid = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' };
-  const axis = {
-    tick: { fill: '#c4b5fd', fontSize: 12 },
-    axisLine: { stroke: 'rgba(255,255,255,0.2)' },
-  };
-  const tooltip = {
-    contentStyle: {
-      backgroundColor: 'rgba(30, 20, 60, 0.95)',
-      border: '1px solid rgba(255,255,255,0.2)',
-      borderRadius: '12px',
-      color: '#fff',
-    },
-    labelStyle: { color: '#c4b5fd' },
-  };
-  const legendFormatter = (value: string) => {
-    const label =
-      value === 'avgIndex'
-        ? '평균 상대 타격지수'
-        : value === 'avgOmega'
-          ? '평균 각속도 (rad/s)'
-          : value;
-    return <span style={{ color: '#c4b5fd' }}>{label}</span>;
-  };
-
-  const heading =
-    tab === 'index'
-      ? '상대 타격지수 비교 (무단위)'
-      : tab === 'omega'
-        ? '각속도 비교 (rad/s) · 실측'
-        : '상대 타격지수와 각속도 (이중 축)';
+  const activeTab = TABS.find((item) => item.key === tab)!;
+  const unit = tab === 'omega' ? 'rad/s' : '무단위';
 
   return (
-    <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h3 className="text-lg font-semibold text-white">{heading}</h3>
-        <div className="flex gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-start">
+        <div>
+          <h3 className="text-lg font-bold text-slate-950">{activeTab.label} 비교</h3>
+          <p className="mt-1 text-sm text-slate-500">{activeTab.description} · {unit}</p>
+        </div>
+        <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="차트 지표 선택">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              aria-controls="comparison-chart-panel"
               onClick={() => setTab(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              className={`min-h-10 rounded-lg px-3 text-sm font-semibold transition-colors ${
                 tab === key
-                  ? 'bg-purple-500/30 text-white'
-                  : 'text-purple-200 hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
               }`}
             >
               {label}
@@ -147,82 +123,51 @@ export default function ComparisonChart({ data }: ComparisonChartProps) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={320}>
-        {tab === 'both' ? (
-          <BarChart data={bothData} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid {...grid} />
-            <XAxis dataKey="name" {...axis} />
-            <YAxis
-              yAxisId="index"
-              {...axis}
-              label={{
-                value: '상대 타격지수',
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#c4b5fd',
-                fontSize: 12,
-              }}
-            />
-            <YAxis
-              yAxisId="omega"
-              orientation="right"
-              {...axis}
-              label={{
-                value: '각속도 (rad/s)',
-                angle: 90,
-                position: 'insideRight',
-                fill: '#c4b5fd',
-                fontSize: 12,
-              }}
-            />
-            <Tooltip
-              {...tooltip}
-              formatter={(value, name) => [
-                value,
-                name === 'avgIndex' ? '평균 상대 타격지수' : '평균 각속도 (rad/s)',
-              ]}
-            />
-            <Legend formatter={legendFormatter} />
-            <Bar
-              yAxisId="index"
-              dataKey="avgIndex"
-              fill={INDEX_COLOR}
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              yAxisId="omega"
-              dataKey="avgOmega"
-              fill={OMEGA_COLOR}
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        ) : (
+      <div id="comparison-chart-panel" role="tabpanel" className="mt-5 h-[300px] w-full sm:h-[360px]">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={tab === 'index' ? indexData : omegaData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            data={chartData}
+            accessibilityLayer
+            margin={{ top: 28, right: 8, left: 0, bottom: 0 }}
+            barGap={8}
           >
-            <CartesianGrid {...grid} />
-            <XAxis dataKey="name" {...axis} />
-            <YAxis {...axis} />
-            <Tooltip {...tooltip} />
-            <Legend formatter={(value: string) => <span style={{ color: '#c4b5fd' }}>{value}</span>} />
-            {weapons.map((weapon, i) => (
-              <Bar
-                key={weapon}
-                dataKey={weapon}
-                fill={WEAPON_COLORS[i % WEAPON_COLORS.length]}
-                radius={[4, 4, 0, 0]}
-              />
+            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="4 4" />
+            <XAxis dataKey="name" tick={{ fill: '#475569', fontSize: 13 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} width={44} />
+            <Tooltip
+              cursor={{ fill: '#f1f5f9' }}
+              contentStyle={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '12px',
+                color: '#0f172a',
+                boxShadow: '0 8px 24px rgb(15 23 42 / 10%)',
+              }}
+              formatter={(value, name) => [`${value} ${unit === '무단위' ? '' : unit}`.trim(), name]}
+            />
+            <Legend wrapperStyle={{ paddingTop: 16, color: '#334155', fontSize: 13 }} />
+            {availableWeapons.map((weapon) => (
+              <Bar key={weapon} dataKey={weapon} fill={WEAPON_COLORS[weapon]} radius={[6, 6, 0, 0]} maxBarSize={72}>
+                <LabelList dataKey={weapon} position="top" fill="#334155" fontSize={12} fontWeight={700} />
+              </Bar>
             ))}
           </BarChart>
-        )}
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
 
-      <p className="mt-4 text-xs text-purple-300/80">
-        {tab === 'omega'
-          ? '각속도는 자이로스코프가 측정한 손잡이(본체)의 실측값입니다.'
-          : '상대 타격지수는 실측 각속도에서 현행 계수로 재계산한 무단위 비교값입니다.'}
-      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2" aria-label={`${activeTab.label} 수치 요약`}>
+        {summaries.map((summary) => (
+          <div key={summary.weapon} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
+            <span className="flex items-center gap-2 font-bold text-slate-800">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: WEAPON_COLORS[summary.weapon] }} aria-hidden="true" />
+              {summary.weapon}
+            </span>
+            <span className="tabular-nums text-slate-600">
+              평균 <strong className="text-slate-950">{summary.average}</strong> · 최대 <strong className="text-slate-950">{summary.maximum}</strong>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

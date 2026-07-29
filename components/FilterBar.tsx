@@ -10,24 +10,24 @@ interface FilterBarProps {
 
 export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap gap-4 p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20">
-      <div className="flex items-center gap-2">
-        <label className="text-purple-200 text-sm font-medium">무기:</label>
-        <select
-          value={filters.weapon}
-          onChange={(e) =>
-            onFilterChange({ ...filters, weapon: e.target.value as FilterOptions['weapon'] })
-          }
-          className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-          <option value="all" className="bg-slate-800">전체</option>
-          {WEAPON_CODES.map((code) => (
-            <option key={code} value={code} className="bg-slate-800">
-              {code}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm md:w-auto">
+      <label htmlFor="weapon-filter" className="shrink-0 pl-2 text-sm font-semibold text-slate-700">
+        무기
+      </label>
+      <select
+        id="weapon-filter"
+        name="weapon"
+        value={filters.weapon}
+        onChange={(event) =>
+          onFilterChange({ ...filters, weapon: event.target.value as FilterOptions['weapon'] })
+        }
+        className="min-h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-900 transition-colors hover:border-slate-300 md:w-36"
+      >
+        <option value="all">전체 무기</option>
+        {WEAPON_CODES.map((code) => (
+          <option key={code} value={code}>{code}</option>
+        ))}
+      </select>
     </div>
   );
 }
