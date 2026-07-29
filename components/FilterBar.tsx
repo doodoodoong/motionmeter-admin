@@ -1,6 +1,7 @@
 'use client';
 
 import { FilterOptions } from '@/types';
+import { WEAPON_CODES } from '@/lib/physics';
 
 interface FilterBarProps {
   filters: FilterOptions;
@@ -20,8 +21,11 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
         >
           <option value="all" className="bg-slate-800">전체</option>
-          <option value="flail" className="bg-slate-800">편곤</option>
-          <option value="staff" className="bg-slate-800">봉</option>
+          {WEAPON_CODES.map((code) => (
+            <option key={code} value={code} className="bg-slate-800">
+              {code}
+            </option>
+          ))}
         </select>
       </div>
     </div>
