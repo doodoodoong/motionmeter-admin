@@ -1,5 +1,4 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -14,7 +13,7 @@ const firebaseConfig = {
 // Firebase 앱 초기화 (이미 초기화된 경우 기존 앱 사용)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = getAuth(app);
+// 이 앱은 Firestore 읽기만 사용한다 (인증 없는 공개 대시보드).
 export const db = getFirestore(app);
 export default app;
 

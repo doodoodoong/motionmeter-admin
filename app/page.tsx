@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { FiBarChart2, FiDatabase, FiLogOut } from 'react-icons/fi';
-import { useAuth } from '@/contexts/AuthContext';
+import { FiBarChart2, FiDatabase } from 'react-icons/fi';
 import { useFirebaseData } from '@/hooks/useFirebaseData';
 import FilterBar from '@/components/FilterBar';
 import DataTable from '@/components/DataTable';
@@ -30,7 +27,6 @@ function ChartSkeleton() {
 }
 
 export default function Dashboard() {
-  const { user, loading: authLoading, signOut } = useAuth();
   const {
     filteredData,
     allData,
@@ -41,34 +37,11 @@ export default function Dashboard() {
     overallStatistics,
     weaponStatistics,
   } = useFirebaseData();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [user, authLoading, router]);
-
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50" aria-live="polite">
-        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-700/20 border-t-teal-700" />
-          화면을 준비하는 중…
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
 
   const flail = weaponStatistics.find((stat) => stat.weapon === '편곤');
   const staff = weaponStatistics.find((stat) => stat.weapon === REFERENCE_WEAPON);
   const measuredRatio =
     flail && staff && staff.avgIndex > 0 ? flail.avgIndex / staff.avgIndex : null;
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -93,7 +66,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100 p-1 lg:flex" aria-label="대시보드 주요 영역">
+          <nav
+            className="hidden shrink-0 items-center gap-1 rounded-xl bg-slate-100 p-1 sm:flex"
+            aria-label="대시보드 주요 영역"
+          >
             {[
               ['핵심 비교', '#comparison'],
               ['비교 차트', '#chart'],
@@ -108,21 +84,6 @@ export default function Dashboard() {
               </a>
             ))}
           </nav>
-
-          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-            <span className="hidden max-w-52 truncate text-sm text-slate-500 md:block">
-              {user.email}
-            </span>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
-            >
-              <FiLogOut aria-hidden="true" />
-              <span className="hidden sm:inline">로그아웃</span>
-              <span className="sr-only sm:hidden">로그아웃</span>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -199,7 +160,7 @@ export default function Dashboard() {
         </section>
 
         <footer className="mt-14 border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-          상대 타격지수 데이터 비교 · 관리자 화면
+          상대 타격지수 데이터 비교 · 편곤·봉 회전운동 측정 프로젝트
         </footer>
       </main>
     </div>
